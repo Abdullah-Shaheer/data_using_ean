@@ -18,6 +18,10 @@ def get_stock_quantity(ean):
     s = Service('D:/Python Files/WebScraping/chromedriver-win64/chromedriver-win64/chromedriver.exe')
     driver = webdriver.Chrome(service=s, options=chrome_options)
 
+    number_of_items = 'Not Available'
+    item_volume = 'Not Available'
+    item_weight = 'Not Available'
+
     try:
         search_url = f"https://www.amazon.nl/s?k={ean}&language=en_GB"
         driver.get(search_url)
@@ -42,8 +46,9 @@ def get_stock_quantity(ean):
                 'Title': '',
                 'Price': '',
                 'Rating': '',
-                'Number of Items': '',
-                'Item Volume': '',
+                'Number of Items': number_of_items,
+                'Item Volume': item_volume,
+                'Item Weight': item_weight,
                 'ASIN': ''
             }
 
@@ -57,8 +62,9 @@ def get_stock_quantity(ean):
                 'Title': '',
                 'Price': '',
                 'Rating': '',
-                'Number of Items': '',
-                'Item Volume': '',
+                'Number of Items': number_of_items,
+                'Item Volume': item_volume,
+                'Item Weight': item_weight,
                 'ASIN': ''
             }
 
@@ -82,7 +88,7 @@ def get_stock_quantity(ean):
         try:
             price = driver.find_element(By.CSS_SELECTOR, '.a-price .a-price-whole').text.strip()
             price_fraction = driver.find_element(By.CSS_SELECTOR, '.a-price .a-price-fraction').text.strip()
-            price = price + ',' + price_fraction
+            price = '€' + price + '.' + price_fraction
         except:
             price = 'N/A'
 
@@ -102,14 +108,20 @@ def get_stock_quantity(ean):
             stock_info = 'Not Available'
 
         try:
-            number_of_items = driver.find_element(By.XPATH, "//div[@id='productDetails_detailBullets_sections1']//th[contains(text(), 'Number of items') or contains(text(), 'Quantity')]/following-sibling::td").text.strip()
+            table_rows = driver.find_elements(By.XPATH, "//table/tbody/tr")
+            for row in table_rows:
+                cells = row.find_elements(By.TAG_NAME, "td")
+                if len(cells) == 2:
+                    heading = cells[0].text
+                    data = cells[1].text
+                    if "Item volume" in heading:
+                        item_volume = data
+                    elif "Number of items" in heading:
+                        number_of_items = data
+                    elif "Item weight" in heading:
+                        item_weight = data
         except:
-            number_of_items = 'N/A'
-
-        try:
-            item_volume = driver.find_element(By.XPATH, "//div[@id='productDetails_detailBullets_sections1']//th[contains(text(), 'Item volume') or contains(text(), 'Volume')]/following-sibling::td").text.strip()
-        except:
-            item_volume = 'N/A'
+            pass
 
         return {
             'EAN': ean,
@@ -120,6 +132,7 @@ def get_stock_quantity(ean):
             'Rating': rating,
             'Number of Items': number_of_items,
             'Item Volume': item_volume,
+            'Item Weight': item_weight,
             'ASIN': asin
         }
 
@@ -132,8 +145,9 @@ def get_stock_quantity(ean):
             'Title': '',
             'Price': '',
             'Rating': '',
-            'Number of Items': '',
-            'Item Volume': '',
+            'Number of Items': number_of_items,
+            'Item Volume': item_volume,
+            'Item Weight': item_weight,
             'ASIN': ''
         }
 
@@ -142,13 +156,12 @@ def get_stock_quantity(ean):
 
 ean_list = [
     '4004675109941', '7615400039326', '7615400761340', '7615400190904',
-    '7615400190904', '7615400191307', '7615400191314', '7615400190652',
+    '7615400191307', '7615400191314', '7615400190652', '4031101609744',
     '7615400190706', '7615400190836', '7615400190881', '7615400193264',
     '7615400774869', '7615400774999', '7615400759613', '7615400193608',
     '4002632800658', '7613329007952', '4031101609676', '4031101609683',
     '4031101609690', '4031101609706', '4031101609720', '4031101609737',
-    '4031101609744'
-]
+    ]
 
 data = []
 
@@ -158,4 +171,4 @@ for ean in ean_list:
     data.append(product_info)
 
 df = pd.DataFrame(data)
-df.to_excel('product_stock_info_updated.xlsx', index=False)
+df.to_excel('product_info.xlsx', index=False)
